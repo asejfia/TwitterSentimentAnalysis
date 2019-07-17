@@ -2,20 +2,31 @@ import pandas as pd
 import numpy as np
 from tweepy import OAuthHandler
 from tweepy import API
+from tweepy import RateLimitError
+import time
 
-# import tweetcredentials
+import tweetcredentials
 # Read the data from CSV files
 
-auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-auth.set_access_token(OAUTH_TOKEN, OAUTH_TOKEN_SECRET)
+auth = OAuthHandler(tweetcredentials.CONSUMER_KEY, tweetcredentials.CONSUMER_SECRET)
+auth.set_access_token(tweetcredentials.ACCESS_TOKEN, tweetcredentials.ACCESS_TOKEN_SECRET)
 api = API(auth)
-data = pd.read_csv('/Users/adrianasejfia/PycharmProjects/TwitterSentimentAnalysis/Albanian_Twitter_sentiment.csv', sep=',', error_bad_lines=False)
+data = pd.read_csv('C:\\Users\\asejfia\\Desktop\\TweetStreamer\\TwitterSentimentAnalysis\\Albanian_Twitter_sentiment.csv', sep=',', error_bad_lines=False)
+print(len(data))
 tweets = []
 for tweetid in data['TweetID']:
-    print(tweetid)
-    tweet = api.get_status(tweetid)
-    tweets.append(tweet)
+    try:
+        tweet = api.get_status(tweetid)
+        tweets.append(tweet.text)
+        print(tweet.text)
+    except RateLimitError:
+        time.sleep(15 * 60)
+    except:
+        print("An exception")
+        continue
+
 data['TweetID'] = tweets
+print(len(data))
 print(data.columns)
 
 
