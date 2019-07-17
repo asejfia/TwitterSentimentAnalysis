@@ -1,11 +1,20 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
+import re
+import tweetcredentials
+import time
+import pickle
+
 from tweepy import OAuthHandler
 from tweepy import API
 from tweepy import RateLimitError
-import time
+from sklearn.pipeline import Pipeline
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import classification_report
 
-import tweetcredentials
+
 # Read the data from CSV files
 
 auth = OAuthHandler(tweetcredentials.CONSUMER_KEY, tweetcredentials.CONSUMER_SECRET)
@@ -18,7 +27,6 @@ for tweetid in data['TweetID']:
     try:
         tweet = api.get_status(tweetid)
         tweets.append(tweet.text)
-        print(tweet.text)
     except RateLimitError:
         time.sleep(15 * 60)
     except:
@@ -33,15 +41,40 @@ print(data.columns)
 data_positive = data.loc[data['HandLabel'] == 'Positive']
 data_negative = data.loc[data['HandLabel'] == 'Negative']
 data_neutral  = data.loc[data['HandLabel'] == 'Neutral']
-# data_positive = pd.read_csv('positive.csv', sep=';',error_bad_lines=False, names=n, usecols=['text'])
-# data_negative = pd.read_csv('negative.csv', sep=';',error_bad_lines=False, names=n, usecols=['text'])
-# print(data_positive.shape)
-# print(data_negative.shape)
-# print(data_neutral.shape)
+
 # Create balanced dataset
 sample_size = min(data_positive.shape[0], data_negative.shape[0], data_neutral.shape[0])
-raw_data = np.concatenate((data_positive.values[:sample_size],
-                           data_negative.values[:sample_size], data_neutral.values[:sample_size]), axis=0)
-# print(len(raw_data))
+raw_data = np.concatenate((data_positive['HandLabel'].values[:sample_size],
+                           data_negative['HandLabel'].values[:sample_size], data_neutral['HandLabel'].values[:sample_size]), axis=0)
+
 labels = [1]*sample_size + [0]*sample_size + [-1]*sample_size
-# print(len(labels))
+
+def preprocess_tweet(text):
+    text = re.sub('((www\.[^\s]+)|(https?://[^\s]+))', 'URL', text)
+    text = re.sub('@[^\s]+', 'USER', text)
+    text = text.lower().replace("ё", "е")
+    text = re.sub('[^a-zA-Zа-яА-Я1-9]+', ' ', text)
+    text = re.sub(' +', ' ', text)
+    return text.strip()
+
+processed_data = [preprocess_tweet(t) for t in raw_data]
+
+text_clf = Pipeline([('vect', CountVectorizer()),
+                     ('tfidf', TfidfTransformer()),
+                     ('clf', MultinomialNB())])
+tuned_parameters = {
+    'vect__ngram_range': [(1, 1), (1, 2), (2, 2)],
+    'tfidf__use_idf': (True, False),
+    'tfidf__norm': ('l1', 'l2'),
+    'clf__alpha': [1, 1e-1, 1e-2]
+}
+
+x_train, x_test, y_train, y_test = train_test_split(processed_data, labels, test_size=0.33, random_state=42)
+clf = GridSearchCV(text_clf, tuned_parameters, cv=10, scoring='f1')
+filename = "tweet_sentiment.sav"
+clf.fit(x_train, y_train)
+pickle.dump(clf, open(filename, 'wb'))
+
+print(classification_report(y_test, clf.predict(x_test), digits=4))
+
+loaded_model = pickle.load(open(filename, 'rb'))
