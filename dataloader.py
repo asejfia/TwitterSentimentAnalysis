@@ -20,17 +20,19 @@ from sklearn.metrics import classification_report
 auth = OAuthHandler(tweetcredentials.CONSUMER_KEY, tweetcredentials.CONSUMER_SECRET)
 auth.set_access_token(tweetcredentials.ACCESS_TOKEN, tweetcredentials.ACCESS_TOKEN_SECRET)
 api = API(auth)
-data = pd.read_csv('C:\\Users\\asejfia\\Desktop\\TweetStreamer\\TwitterSentimentAnalysis\\Albanian_Twitter_sentiment.csv', sep=',', error_bad_lines=False)
+data = pd.read_csv('/Users/adrianasejfia/PycharmProjects/TwitterSentimentAnalysis/TwitterSentimentAnalysis/Albanian_Twitter_sentiment.csv', sep=',', error_bad_lines=False)
 print(len(data))
 tweets = []
-for tweetid in data['TweetID']:
+for enum, tweetid in enumerate(data['TweetID']):
     try:
         tweet = api.get_status(tweetid)
         tweets.append(tweet.text)
     except RateLimitError:
         time.sleep(15 * 60)
+        data.drop(enum, inplace=True)
+
     except:
-        print("An exception")
+        data.drop(enum, inplace=True)
         continue
 
 data['TweetID'] = tweets
@@ -72,7 +74,7 @@ tuned_parameters = {
 x_train, x_test, y_train, y_test = train_test_split(processed_data, labels, test_size=0.33, random_state=42)
 clf = GridSearchCV(text_clf, tuned_parameters, cv=10, scoring='f1')
 filename = "tweet_sentiment.sav"
-clf.fit(x_train, y_train)
+clf.fit(x_train, y_train, average="micro")
 pickle.dump(clf, open(filename, 'wb'))
 
 print(classification_report(y_test, clf.predict(x_test), digits=4))

@@ -1,8 +1,26 @@
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import Stream
+from unidecode import unidecode
  
+
+import json
+import pickle
+import random
+import time
+import sqlite3
 import tweetcredentials
+
+def create_table():
+    try:
+        c.execute("CREATE TABLE IF NOT EXISTS sentiment(unix REAL, tweet TEXT, sentiment REAL)")
+        c.execute("CREATE INDEX fast_unix ON sentiment(unix)")
+        c.execute("CREATE INDEX fast_tweet ON sentiment(tweet)")
+        c.execute("CREATE INDEX fast_sentiment ON sentiment(sentiment)")
+        conn.commit()
+    except Exception as e:
+        print(str(e))
+
  
 # # # # TWITTER STREAMER # # # #
 class TwitterStreamer():
@@ -33,12 +51,22 @@ class StdOutListener(StreamListener):
 
     def on_data(self, data):
         try:
-            print(data)
-            with open(self.fetched_tweets_filename, 'a') as tf:
-                tf.write(data)
+            data = json.loads(data)
+            tweet = unidecode(data['text'])
+            time_ms = data['timestamp_ms']
+            # sentiment = loaded_model.predict(tweet)
+            sentiment = random.uniform(-1, 1)
+            print(tweet, time_ms, sentiment)
+
+            # with open(self.fetched_tweets_filename, 'a') as tf:
+            #     tf.write(data)
+            c.execute("INSERT INTO sentiment(unix, tweet, sentiment) VALUES (?, ?, ?)", (time_ms, tweet, sentiment))
+            conn.commit()
             return True
         except BaseException as e:
             print("Error on_data %s" % str(e))
+        except KeyError as e:
+            print(str(e))
         return True
           
 
@@ -50,7 +78,15 @@ if __name__ == '__main__':
  
     # Authenticate using config.py and connect to Twitter Streaming API.
     #hash_tag_list = ["ks", "kosova", "kosovo"]
-    fetched_tweets_filename = "tweets-ks.txt"
-
-    twitter_streamer = TwitterStreamer()
-    twitter_streamer.stream_tweets(fetched_tweets_filename)
+    while True:
+        try:
+            conn = sqlite3.connect('twitter.db')
+            c = conn.cursor()
+            fetched_tweets_filename = "tweets-ks.txt"
+            # loaded_model = pickle.load(open("model.sav", 'rb'))
+            create_table()
+            twitter_streamer = TwitterStreamer()
+            twitter_streamer.stream_tweets(fetched_tweets_filename)
+        except Exception as e:
+            print(str(e))
+            time.sleep(5)
