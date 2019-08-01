@@ -9,7 +9,7 @@ import sqlite3
 import time
 
 from collections import deque
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 X = deque(maxlen=20)
 Y = deque(maxlen=20)
@@ -22,7 +22,7 @@ stock ='TSLA'
 
 
 
-app = dash.Dash('vehicle-data')
+app = dash.Dash('Kosovo-Tweet-Sentiment')
 
 max_length = 20
 times = deque(maxlen=max_length)
@@ -59,15 +59,13 @@ def update_obd_values(times, oil_temps, intake_temps, coolant_temps, rpms, speed
 app.layout = html.Div(
     [
         html.Div([
-            html.H2('Vehicle Data',
+            html.H2('Kosovo Tweets Sentiment Analysis',
                     style = {'float': 'left',
                     })
         ]),
-        dcc.Dropdown(id='query-data-name',
-                     options=[{'label': s, 'value' :s }
-                              for s in data_dict.keys()],
-                     value=['hahaha'],
-                     multi=True
+        dcc.Input(id='input-1-keypress',
+                     type='text',
+                     value='Shtepia',
                      ),
         html.Div(children=html.Div(id='graphs'), className='row'),
         dcc.Interval (
@@ -93,32 +91,39 @@ app.layout = html.Div(
 )
 
 @app.callback(Output('graphs', 'children'),
-[Input('query-data-name', 'value'), Input('graph-update', 'n_intervals')],
-
+[Input('input-1-keypress', 'value'), Input('graph-update', '')],
               )
 def update_graph(data_names, n_interval):
     print(data_names)
-    conn = sqlite3.connect('/Users/adrianasejfia/PycharmProjects/TwitterSentimentAnalysis/TwitterSentimentAnalysis/twitter.db')
+    conn = sqlite3.connect('C:\\Users\\asejfia\\Desktop\\TweetStreamer\\TwitterSentimentAnalysis\\twitter.db')
     c = conn.cursor()
+    query_param = '%' + data_names + '%'
+    df = pd.read_sql("SELECT * FROM sentiment WHERE tweet LIKE :who", con=conn, params={"who":query_param})
+    # df = (conn.execute("SELECT * FROM sentiment WHERE tweet LIKE :who ORDER BY unix DESC LIMIT 100",  {"who":'%Shtepia%'}))
 
-    df = pd.read_sql("SELECT * FROM sentiment", con=conn, params={"who":'hahhaha'})
-    df.sort_values('unix', inplace=True)
+
 
     X = df.unix.values[-100:]
     Y = df.sentiment.values[-100:]
-    # print(df)
+    print(df)
+
+    print("X")
+    print(X)
+
+    print("Y")
+    print(Y)
 
     graphs = []
-    # global times
-    # global oil_temps
-    # global intake_temps
-    # global coolant_temps
-    # global rpms
-    # global speeds
-    # global throttle_pos
-    # times, oil_temps, intake_temps, coolant_temps, rpms, speeds, throttle_pos =
 
-    # update_obd_values(times, oil_temps, intake_temps, coolant_temps, rpms, speeds, throttle_pos)
+    if len(list(X)) == 0:
+        X = [0]
+        graphs.append(html.Div([html.H1("Fjala nuk ekziston ne databaze.")]))
+        return graphs
+
+    if len(list(Y)) == 0:
+        Y = [0]
+        graphs.append(html.Div([html.H1("Fjala nuk ekziston ne databaze.")]))
+        return graphs
 
     if len(data_names)>2:
         class_choice = 'col s12 m6 14'
@@ -127,26 +132,29 @@ def update_graph(data_names, n_interval):
     else:
         class_choice = 'col s12'
 
-    for data_name in data_names:
-        data = go.Scatter(
-            # x = list(times),
-            # y = list(data_dict[data_name]),
+    # for data_name in data_names:
+    data = go.Scatter(
+            x = list(X),
+            y = list(Y),
             name = 'ski',
             fill = "tozeroy",
             fillcolor = "#6897bb"
         )
 
-        graphs.append(html.Div(dcc.Graph(
-            id=data_name,
+    graphs.append(html.Div(dcc.Graph(
+            id=data_names,
             animate=True,
             figure={'data': [data], 'layout': go.Layout(xaxis=dict(range=[min(X), max(X)]),
                                                         yaxis=dict(range=[min(Y),
                                                                           max(Y)]),
                                                         margin={'l': 50, 'r': 1, 't': 45, 'b': 1},
-                                                        title='{}'.format(data_name))}
+                                                        title='{}'.format(data_names))}
         ), className=class_choice))
 
-        return graphs
+    print("graphs")
+    print(graphs)
+
+    return graphs
 
 external_css = ['https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css']
 for css in external_css:
