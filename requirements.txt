@@ -1,6 +1,5 @@
 dash
 plotly
-pickle
 tweepy
 numpy
 pandas
