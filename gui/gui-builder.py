@@ -2,6 +2,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import datetime
+import flask
 import pandas as pd
 import plotly.graph_objs as go
 import sqlite3
@@ -12,22 +13,18 @@ from dash.dependencies import Input, Output
 
 X = deque(maxlen=20)
 Y = deque(maxlen=20)
-X.append(1)
-Y.append(1)
 
-start = datetime.datetime(2015, 1, 1)
-end = datetime.datetime(2018, 2, 8)
-stock ='TSLA'
+
+
 
 
 
 app = dash.Dash('Kosovo-Tweet-Sentiment')
 app.css.config.serve_locally = False
 app.scripts.config.serve_locally = False
+server = app.server
 
-@app.routes("/")
-def home():
-    app.layout = html.Div(
+app.layout = html.Div(
         [
             html.Div([
                 html.H3('Analize e Sentimentit ne Twitter',
