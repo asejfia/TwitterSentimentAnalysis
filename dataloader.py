@@ -71,10 +71,10 @@ tuned_parameters = {
     'clf__alpha': [1, 1e-1, 1e-2]
 }
 
-x_train, x_test, y_train, y_test = train_test_split(processed_data, labels, test_size=0.33, random_state=42)
+x_train, x_test, y_train, y_test = train_test_split(processed_data, labels, train_size=0.1, test_size=0.1, random_state=42)
 clf = GridSearchCV(text_clf, tuned_parameters, cv=10, scoring='f1')
 filename = "tweet_sentiment.sav"
-clf.fit(x_train, y_train, average="micro")
+clf.fit(x_train, y_train)
 pickle.dump(clf, open(filename, 'wb'))
 
 print(classification_report(y_test, clf.predict(x_test), digits=4))

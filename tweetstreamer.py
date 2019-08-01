@@ -5,6 +5,7 @@ from unidecode import unidecode
  
 
 import json
+import os
 import pickle
 import random
 import time
@@ -33,8 +34,8 @@ class TwitterStreamer():
     def stream_tweets(self, fetched_tweets_filename):
         # This handles Twitter authetification and the connection to Twitter Streaming API
         listener = StdOutListener(fetched_tweets_filename)
-        auth = OAuthHandler(tweetcredentials.CONSUMER_KEY, tweetcredentials.CONSUMER_SECRET)
-        auth.set_access_token(tweetcredentials.ACCESS_TOKEN, tweetcredentials.ACCESS_TOKEN_SECRET)
+        auth = OAuthHandler(os.environ.get('CONSUMER_KEY'), os.environ.get('CONSUMER_SECRET'))
+        auth.set_access_token(os.environ.get('ACCESS_TOKEN'), os.environ.get('ACCESS_TOKEN_SECRET'))
         stream = Stream(auth, listener)
 
         # This line filter Twitter Streams to capture data by the keywords: 
@@ -56,10 +57,10 @@ class StdOutListener(StreamListener):
             time_ms = data['timestamp_ms']
             # sentiment = loaded_model.predict(tweet)
             sentiment = random.uniform(-1, 1)
+            print("tweet")
             print(tweet, time_ms, sentiment)
 
-            # with open(self.fetched_tweets_filename, 'a') as tf:
-            #     tf.write(data)
+
             c.execute("INSERT INTO sentiment(unix, tweet, sentiment) VALUES (?, ?, ?)", (time_ms, tweet, sentiment))
             conn.commit()
             return True

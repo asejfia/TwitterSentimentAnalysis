@@ -1,0 +1,10 @@
+dash
+plotly
+pickle
+tweepy
+numpy
+pandas
+unidecode
+sklearn
+dash_core_components
+dash_html_components
