@@ -9,6 +9,7 @@ import sqlite3
 from collections import deque
 from dash.dependencies import Input, Output
 
+
 X = deque(maxlen=20)
 Y = deque(maxlen=20)
 X.append(1)
@@ -24,29 +25,30 @@ app = dash.Dash('Kosovo-Tweet-Sentiment')
 app.css.config.serve_locally = False
 app.scripts.config.serve_locally = False
 
+@app.routes("/")
+def home():
+    app.layout = html.Div(
+        [
+            html.Div([
+                html.H3('Analize e Sentimentit ne Twitter',
+                        style = {'float': 'center',
 
-app.layout = html.Div(
-    [
-        html.Div([
-            html.H3('Analize e Sentimentit ne Twitter',
-                    style = {'float': 'center',
+                        })
+            ]),
+            dcc.Input(id='input-1-keypress',
+                         type='text',
+                         value='Shtepia',
+                      style = {}
+                         ),
+            html.Div(children=html.Div(id='graphs'), className='row'),
+            dcc.Interval (
+                id='graph-update',
+                interval=1000,
+                n_intervals=0
+            )
+        ], className="container", style={'width':'98%', 'margin-left':10, 'margin-right':10, 'max-width':50000}
 
-                    })
-        ]),
-        dcc.Input(id='input-1-keypress',
-                     type='text',
-                     value='Shtepia',
-                  style = {}
-                     ),
-        html.Div(children=html.Div(id='graphs'), className='row'),
-        dcc.Interval (
-            id='graph-update',
-            interval=1000,
-            n_intervals=0
-        )
-    ], className="container", style={'width':'98%', 'margin-left':10, 'margin-right':10, 'max-width':50000}
-
-)
+    )
 
 @app.callback(Output('graphs', 'children'),
 [Input('input-1-keypress', 'value'), Input('graph-update', '')],
